@@ -95,7 +95,7 @@ export function getCurrentPalette(): Uint8Array {
         return customPalette;
     }
     
-    const config = vscode.workspace.getConfiguration('lmpReader');
+    const config = vscode.workspace.getConfiguration('doomgfxTools');
     const palettePath = config.get<string>('palettePath');
     const paletteIndex = config.get<number>('paletteIndex', 0);
     

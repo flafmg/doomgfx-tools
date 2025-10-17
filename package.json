@@ -1,13 +1,13 @@
 {
-  "name": "lmp-reader",
-  "displayName": "LMP Reader",
-  "description": "Read and convert Doom .lmp image files",
+  "name": "doomgfx-tools",
+  "displayName": "DoomGFX Tools",
+  "description": "Tools for converting and editing DoomGFX images",
   "version": "0.1.0",
   "publisher": "flaffy",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/flafmg/lmp-reader"
+    "url": "https://github.com/flafmg/doomgfx-tools"
   },
   "engines": {
     "vscode": "^1.105.0"
@@ -20,7 +20,7 @@
   "contributes": {
     "customEditors": [
       {
-        "viewType": "lmpReader.lmpEditor",
+        "viewType": "doomgfxTools.lmpEditor",
         "displayName": "LMP Image Viewer",
         "selector": [
           {
@@ -32,64 +32,92 @@
     ],
     "commands": [
       {
-        "command": "lmpReader.convertToPNG",
-        "title": "LMP: Convert to PNG"
+        "command": "doomgfxTools.convertToPNG",
+        "title": "DoomGFX: Convert to PNG"
       },
       {
-        "command": "lmpReader.convertFromPNG",
-        "title": "LMP: Convert PNG to LMP"
+        "command": "doomgfxTools.convertFromPNG",
+        "title": "DoomGFX: Convert PNG to LMP"
       },
       {
-        "command": "lmpReader.loadPalette",
-        "title": "LMP: Load Custom Palette"
+        "command": "doomgfxTools.loadPalette",
+        "title": "DoomGFX: Load Custom Palette"
       },
       {
-        "command": "lmpReader.resetPalette",
-        "title": "LMP: Reset Palette to Default"
+        "command": "doomgfxTools.resetPalette",
+        "title": "DoomGFX: Reset Palette to Default"
       },
       {
-        "command": "lmpReader.applyPalette",
-        "title": "LMP: Select Palette Page"
+        "command": "doomgfxTools.applyPalette",
+        "title": "DoomGFX: Select Palette Page"
       }
     ],
     "configuration": {
-      "title": "LMP Reader",
+      "title": "DoomGFX Tools",
       "properties": {
-        "lmpReader.palettePath": {
+        "doomgfxTools.palettePath": {
           "type": "string",
           "default": "",
           "order": 1,
           "description": "Path to custom palette file. Leave empty to use default Doom palette."
         },
-        "lmpReader.paletteIndex": {
+        "doomgfxTools.paletteIndex": {
           "type": "number",
           "default": 0,
           "minimum": 0,
           "order": 2,
           "description": "Palette page index to use."
+        },
+        "lmpreader.customPresets": {
+          "type": "array",
+          "default": [],
+          "order": 3,
+          "description": "Custom offset presets. Each preset has a name, offsetX, and offsetY.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Preset name"
+              },
+              "offsetX": {
+                "type": "number",
+                "description": "X offset"
+              },
+              "offsetY": {
+                "type": "number",
+                "description": "Y offset"
+              }
+            }
+          }
         }
+      }
+    },
+    "configurationDefaults": {
+      "[lmp]": {
+        "files.autoSave": "off"
       }
     },
     "menus": {
       "explorer/context": [
         {
           "when": "resourceExtname == .lmp",
-          "command": "lmpReader.convertToPNG",
-          "group": "lmpReader"
+          "command": "doomgfxTools.convertToPNG",
+          "group": "doomgfxTools"
         },
         {
           "when": "resourceExtname == .png",
-          "command": "lmpReader.convertFromPNG",
-          "group": "lmpReader"
+          "command": "doomgfxTools.convertFromPNG",
+          "group": "doomgfxTools"
         }
       ],
       "commandPalette": [
         {
-          "command": "lmpReader.convertToPNG",
+          "command": "doomgfxTools.convertToPNG",
           "when": "resourceExtname == .lmp"
         },
         {
-          "command": "lmpReader.convertFromPNG"
+          "command": "doomgfxTools.convertFromPNG"
         }
       ]
     }

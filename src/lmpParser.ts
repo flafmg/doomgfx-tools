@@ -8,26 +8,26 @@ export interface LMPHeader {
 export interface LMPImage {
     header: LMPHeader;
     pixels: Uint8Array;
+    transparency: Uint8Array;
 }
-
 export function parseLMP(buffer: Buffer): LMPImage {
     if (buffer.length < 8) {
         throw new Error('Invalid LMP file: too small');
     }
-
     const header: LMPHeader = {
         width: buffer.readInt16LE(0),
         height: buffer.readInt16LE(2),
         leftOffset: buffer.readInt16LE(4),
         topOffset: buffer.readInt16LE(6)
     };
-
     if (header.width <= 0 || header.height <= 0) {
         throw new Error('Invalid LMP file: invalid dimensions');
     }
 
     const pixels = new Uint8Array(header.width * header.height);
-    pixels.fill(247);
+    const transparency = new Uint8Array(header.width * header.height);
+    pixels.fill(0);
+    transparency.fill(1);
 
     const columnOffsets: number[] = [];
     for (let i = 0; i < header.width; i++) {
@@ -45,22 +45,24 @@ export function parseLMP(buffer: Buffer): LMPImage {
             }
             
             const pixelCount = buffer[offset + 1];
-            offset += 3;
+            offset += 2;
+            offset += 1;
             
             for (let i = 0; i < pixelCount && offset < buffer.length; i++) {
                 const row = rowStart + i;
                 if (row < header.height) {
                     const pixelIndex = row * header.width + col;
                     pixels[pixelIndex] = buffer[offset];
+                    transparency[pixelIndex] = 0;
                 }
                 offset++;
             }
             
-            offset++;
+            offset += 1;
         }
     }
 
-    return { header, pixels };
+    return { header, pixels, transparency };
 }
 
 export function lmpToRGBA(lmpImage: LMPImage, palette: Uint8Array): Uint8Array {
@@ -72,7 +74,7 @@ export function lmpToRGBA(lmpImage: LMPImage, palette: Uint8Array): Uint8Array {
         const r = palette[paletteIndex * 3];
         const g = palette[paletteIndex * 3 + 1];
         const b = palette[paletteIndex * 3 + 2];
-        const a = paletteIndex === 247 ? 0 : 255;
+        const a = lmpImage.transparency[i] === 1 ? 0 : 255;
 
         rgba[i * 4] = r;
         rgba[i * 4 + 1] = g;
@@ -83,7 +85,7 @@ export function lmpToRGBA(lmpImage: LMPImage, palette: Uint8Array): Uint8Array {
     return rgba;
 }
 
-export function rgbaToLMP(rgba: Uint8Array, width: number, height: number, palette: Uint8Array): Buffer {
+export function rgbaToLMP(rgba: Uint8Array, width: number, height: number, palette: Uint8Array, offsetX: number = 0, offsetY: number = 0): Buffer {
     const pixels = new Uint8Array(width * height);
 
     for (let i = 0; i < width * height; i++) {
@@ -170,8 +172,8 @@ export function rgbaToLMP(rgba: Uint8Array, width: number, height: number, palet
 
     buffer.writeInt16LE(width, 0);
     buffer.writeInt16LE(height, 2);
-    buffer.writeInt16LE(0, 4);
-    buffer.writeInt16LE(0, 6);
+    buffer.writeInt16LE(offsetX, 4);
+    buffer.writeInt16LE(offsetY, 6);
 
     let currentOffset = headerSize + offsetTableSize;
     for (let i = 0; i < width; i++) {

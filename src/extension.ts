@@ -3,7 +3,7 @@ import { LMPEditorProvider } from './lmpEditor';
 import { registerCommands } from './commands';
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('LMP Reader extension activated');
+	console.log('DoomGFX Tools extension activated');
 
 	context.subscriptions.push(
 		LMPEditorProvider.register(context)
@@ -13,8 +13,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration(async e => {
-			if (e.affectsConfiguration('lmpReader.palettePath') || 
-			    e.affectsConfiguration('lmpReader.paletteIndex')) {
+			if (e.affectsConfiguration('doomgfxTools.palettePath') || 
+			    e.affectsConfiguration('doomgfxTools.paletteIndex')) {
 				
 				const lmpTabs = vscode.window.tabGroups.all
 					.flatMap(group => group.tabs)

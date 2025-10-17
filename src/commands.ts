@@ -5,23 +5,23 @@ import { getCurrentPalette, loadPaletteFromFile, setCustomPalette } from './pale
 
 export function registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('lmpReader.convertToPNG', convertToPNG)
+        vscode.commands.registerCommand('doomgfxTools.convertToPNG', convertToPNG)
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('lmpReader.convertFromPNG', convertFromPNG)
+        vscode.commands.registerCommand('doomgfxTools.convertFromPNG', convertFromPNG)
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('lmpReader.loadPalette', loadPalette)
+        vscode.commands.registerCommand('doomgfxTools.loadPalette', loadPalette)
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('lmpReader.resetPalette', resetPalette)
+        vscode.commands.registerCommand('doomgfxTools.resetPalette', resetPalette)
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('lmpReader.applyPalette', applyPalette)
+        vscode.commands.registerCommand('doomgfxTools.applyPalette', applyPalette)
     );
 }
 
@@ -89,11 +89,11 @@ async function resetPalette(): Promise<void> {
 }
 
 async function applyPalette(): Promise<void> {
-    const config = vscode.workspace.getConfiguration('lmpReader');
+    const config = vscode.workspace.getConfiguration('doomgfxTools');
     const palettePath = config.get<string>('palettePath');
     
     if (!palettePath) {
-        vscode.window.showWarningMessage('No palette path configured. Set "lmpReader.palettePath" in settings first.');
+        vscode.window.showWarningMessage('No palette path configured. Set "doomgfxTools.palettePath" in settings first.');
         return;
     }
 
