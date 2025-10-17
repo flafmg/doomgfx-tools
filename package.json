@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "publisher": "flaffy",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flafmg/lmp-reader"
+  },
   "engines": {
     "vscode": "^1.105.0"
   },
