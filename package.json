@@ -2,9 +2,10 @@
   "name": "doomgfx-tools",
   "displayName": "DoomGFX Tools",
   "description": "Tools for converting and editing DoomGFX images",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "publisher": "flaffy",
   "license": "MIT",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/flafmg/doomgfx-tools"
@@ -21,7 +22,7 @@
     "customEditors": [
       {
         "viewType": "doomgfxTools.lmpEditor",
-        "displayName": "LMP Image Viewer",
+        "displayName": "DoomGFX Image editor",
         "selector": [
           {
             "filenamePattern": "*.lmp"
@@ -37,7 +38,7 @@
       },
       {
         "command": "doomgfxTools.convertFromPNG",
-        "title": "DoomGFX: Convert PNG to LMP"
+        "title": "DoomGFX: Convert to LMP"
       },
       {
         "command": "doomgfxTools.loadPalette",
