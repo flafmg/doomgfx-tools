@@ -1,9 +1,3 @@
 # Change Log
 
-All notable changes to the "lmp-reader" extension will be documented in this file.
-
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-
-## [Unreleased]
-
-- Initial release
+fixed undo/redo stack being duplicated at each adition, wich caused undo and redo not work properly
