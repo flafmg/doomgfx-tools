@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { parseLMP, lmpToRGBA, rgbaToLMP } from './lmpParser';
+import { parseLMP, lmpToRGBA, rgbaToLMP, ColorApproximationMode } from './lmpParser';
 import { getCurrentPalette, loadPaletteFromFile, setCustomPalette } from './palette';
 
 export function registerCommands(context: vscode.ExtensionContext): void {
@@ -23,6 +23,82 @@ export function registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.commands.registerCommand('doomgfxTools.applyPalette', applyPalette)
     );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('doomgfxTools.setColorMode', setColorMode)
+    );
+}
+
+function getColorMode(): ColorApproximationMode {
+    const config = vscode.workspace.getConfiguration('doomgfxTools');
+    const mode = config.get<string>('colorApproximationMode', 'nearest');
+    return mode as ColorApproximationMode;
+}
+
+async function setColorMode(): Promise<void> {
+    const config = vscode.workspace.getConfiguration('doomgfxTools');
+    const currentMode = config.get<string>('colorApproximationMode', 'nearest');
+
+    const options = [
+        {
+            label: currentMode === 'nearest' ? '$(check) Nearest Color' : 'Nearest Color',
+            description: 'No dithering - Fast',
+            detail: currentMode === 'nearest' ? 'Currently selected' : 'Simple color matching, may show banding',
+            mode: 'nearest'
+        },
+        {
+            label: currentMode === 'bayer-2x2' ? '$(check) Bayer 2×2' : 'Bayer 2×2',
+            description: 'Ordered dithering - Very fast',
+            detail: currentMode === 'bayer-2x2' ? 'Currently selected' : 'Subtle crosshatch pattern, good for small images',
+            mode: 'bayer-2x2'
+        },
+        {
+            label: currentMode === 'bayer-4x4' ? '$(check) Bayer 4×4' : 'Bayer 4×4',
+            description: 'Ordered dithering - Fast',
+            detail: currentMode === 'bayer-4x4' ? 'Currently selected' : 'Balanced pattern, recommended for most textures',
+            mode: 'bayer-4x4'
+        },
+        {
+            label: currentMode === 'bayer-8x8' ? '$(check) Bayer 8×8' : 'Bayer 8×8',
+            description: 'Ordered dithering - Fast',
+            detail: currentMode === 'bayer-8x8' ? 'Currently selected' : 'Smoothest ordered dithering, best for gradients',
+            mode: 'bayer-8x8'
+        },
+        {
+            label: currentMode === 'floyd-steinberg' ? '$(check) Floyd-Steinberg' : 'Floyd-Steinberg',
+            description: 'Error diffusion - Slower',
+            detail: currentMode === 'floyd-steinberg' ? 'Currently selected' : 'Serpentine pattern, good for photographic images',
+            mode: 'floyd-steinberg'
+        },
+        {
+            label: currentMode === 'atkinson' ? '$(check) Atkinson' : 'Atkinson',
+            description: 'Error diffusion - Medium speed',
+            detail: currentMode === 'atkinson' ? 'Currently selected' : 'Preserves detail, faster than Floyd-Steinberg, classic Mac look',
+            mode: 'atkinson'
+        }
+    ];
+
+    const selected = await vscode.window.showQuickPick(options, {
+        placeHolder: 'Select color approximation mode',
+        title: 'Color Approximation Mode'
+    });
+
+    if (!selected) {
+        return;
+    }
+
+    await config.update('colorApproximationMode', selected.mode, vscode.ConfigurationTarget.Global);
+    
+    const modeNames: Record<string, string> = {
+        'nearest': 'Nearest Color',
+        'bayer-2x2': 'Bayer 2×2',
+        'bayer-4x4': 'Bayer 4×4',
+        'bayer-8x8': 'Bayer 8×8',
+        'floyd-steinberg': 'Floyd-Steinberg',
+        'atkinson': 'Atkinson'
+    };
+    
+    vscode.window.showInformationMessage(`Color mode set to: ${modeNames[selected.mode]}`);
 }
 
 async function loadPalette(): Promise<void> {
@@ -134,56 +210,83 @@ async function applyPalette(): Promise<void> {
     }
 }
 
-async function convertToPNG(uri?: vscode.Uri): Promise<void> {
-    if (!uri && vscode.window.activeTextEditor) {
-        uri = vscode.window.activeTextEditor.document.uri;
+async function convertToPNG(uri?: vscode.Uri, allUris?: vscode.Uri[]): Promise<void> {
+    const urisToProcess: vscode.Uri[] = [];
+
+    if (allUris && allUris.length > 0) {
+        urisToProcess.push(...allUris.filter(u => u.fsPath.toLowerCase().endsWith('.lmp')));
+    } else if (uri) {
+        urisToProcess.push(uri);
+    } else if (vscode.window.activeTextEditor) {
+        urisToProcess.push(vscode.window.activeTextEditor.document.uri);
     }
 
-    if (!uri) {
+    if (urisToProcess.length === 0) {
         vscode.window.showErrorMessage('No LMP file selected');
         return;
     }
 
-    if (!uri.fsPath.toLowerCase().endsWith('.lmp')) {
-        vscode.window.showErrorMessage('Selected file is not a .lmp file');
-        return;
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const fileUri of urisToProcess) {
+        if (!fileUri.fsPath.toLowerCase().endsWith('.lmp')) {
+            errorCount++;
+            continue;
+        }
+
+        try {
+            const buffer = Buffer.from(await vscode.workspace.fs.readFile(fileUri));
+            const lmpImage = parseLMP(buffer);
+            const rgbaData = lmpToRGBA(lmpImage, getCurrentPalette());
+
+            const PNG = require('pngjs').PNG;
+            const png = new PNG({
+                width: lmpImage.header.width,
+                height: lmpImage.header.height
+            });
+            png.data = Buffer.from(rgbaData);
+            const pngBuffer = PNG.sync.write(png);
+
+            const pngPath = fileUri.fsPath.replace(/\.lmp$/i, '.png');
+            await vscode.workspace.fs.writeFile(
+                vscode.Uri.file(pngPath),
+                pngBuffer
+            );
+            successCount++;
+        } catch (error) {
+            errorCount++;
+            if (urisToProcess.length === 1) {
+                vscode.window.showErrorMessage(`Failed to convert LMP to PNG: ${error}`);
+                return;
+            }
+        }
     }
 
-    try {
-        const buffer = Buffer.from(await vscode.workspace.fs.readFile(uri));
-        const lmpImage = parseLMP(buffer);
-        const rgbaData = lmpToRGBA(lmpImage, getCurrentPalette());
-
-        const PNG = require('pngjs').PNG;
-        const png = new PNG({
-            width: lmpImage.header.width,
-            height: lmpImage.header.height
-        });
-        png.data = Buffer.from(rgbaData);
-        const pngBuffer = PNG.sync.write(png);
-
-        const pngPath = uri.fsPath.replace(/\.lmp$/i, '.png');
-        await vscode.workspace.fs.writeFile(
-            vscode.Uri.file(pngPath),
-            pngBuffer
-        );
-
-        vscode.window.showInformationMessage(`Converted to ${path.basename(pngPath)}`);
-    } catch (error) {
-        vscode.window.showErrorMessage(`Failed to convert LMP to PNG: ${error}`);
+    if (urisToProcess.length === 1) {
+        vscode.window.showInformationMessage(`Converted to ${path.basename(urisToProcess[0].fsPath.replace(/\.lmp$/i, '.png'))}`);
+    } else {
+        const message = `Converted ${successCount} file(s) to PNG` + (errorCount > 0 ? `, ${errorCount} failed` : '');
+        vscode.window.showInformationMessage(message);
     }
 }
 
-async function convertFromPNG(uri?: vscode.Uri): Promise<void> {
-    if (!uri && vscode.window.activeTextEditor) {
-        uri = vscode.window.activeTextEditor.document.uri;
+async function convertFromPNG(uri?: vscode.Uri, allUris?: vscode.Uri[]): Promise<void> {
+    const urisToProcess: vscode.Uri[] = [];
+
+    if (allUris && allUris.length > 0) {
+        urisToProcess.push(...allUris.filter(u => u.fsPath.toLowerCase().endsWith('.png')));
+    } else if (uri) {
+        urisToProcess.push(uri);
+    } else if (vscode.window.activeTextEditor) {
+        urisToProcess.push(vscode.window.activeTextEditor.document.uri);
     }
 
-    if (!uri) {
+    if (urisToProcess.length === 0) {
         const uris = await vscode.window.showOpenDialog({
             canSelectFiles: true,
             canSelectFolders: false,
-            canSelectMany: false,
+            canSelectMany: true,
             filters: {
                 'PNG Images': ['png']
             }
@@ -193,35 +296,54 @@ async function convertFromPNG(uri?: vscode.Uri): Promise<void> {
             return;
         }
 
-        uri = uris[0];
+        urisToProcess.push(...uris);
     }
 
-    if (!uri.fsPath.toLowerCase().endsWith('.png')) {
-        vscode.window.showErrorMessage('Selected file is not a .png file');
-        return;
+    let successCount = 0;
+    let errorCount = 0;
+    const colorMode = getColorMode();
+
+    for (const fileUri of urisToProcess) {
+        if (!fileUri.fsPath.toLowerCase().endsWith('.png')) {
+            errorCount++;
+            continue;
+        }
+
+        try {
+            const pngBuffer = Buffer.from(await vscode.workspace.fs.readFile(fileUri));
+            
+            const PNG = require('pngjs').PNG;
+            const png = PNG.sync.read(pngBuffer);
+
+            const lmpBuffer = rgbaToLMP(
+                new Uint8Array(png.data),
+                png.width,
+                png.height,
+                getCurrentPalette(),
+                0,
+                0,
+                colorMode
+            );
+
+            const lmpPath = fileUri.fsPath.replace(/\.png$/i, '.lmp');
+            await vscode.workspace.fs.writeFile(
+                vscode.Uri.file(lmpPath),
+                lmpBuffer
+            );
+            successCount++;
+        } catch (error) {
+            errorCount++;
+            if (urisToProcess.length === 1) {
+                vscode.window.showErrorMessage(`Failed to convert PNG to LMP: ${error}`);
+                return;
+            }
+        }
     }
 
-    try {
-        const pngBuffer = Buffer.from(await vscode.workspace.fs.readFile(uri));
-        
-        const PNG = require('pngjs').PNG;
-        const png = PNG.sync.read(pngBuffer);
-
-        const lmpBuffer = rgbaToLMP(
-            new Uint8Array(png.data),
-            png.width,
-            png.height,
-            getCurrentPalette()
-        );
-
-        const lmpPath = uri.fsPath.replace(/\.png$/i, '.lmp');
-        await vscode.workspace.fs.writeFile(
-            vscode.Uri.file(lmpPath),
-            lmpBuffer
-        );
-
-        vscode.window.showInformationMessage(`Converted to ${path.basename(lmpPath)}`);
-    } catch (error) {
-        vscode.window.showErrorMessage(`Failed to convert PNG to LMP: ${error}`);
+    if (urisToProcess.length === 1) {
+        vscode.window.showInformationMessage(`Converted to ${path.basename(urisToProcess[0].fsPath.replace(/\.png$/i, '.lmp'))}`);
+    } else {
+        const message = `Converted ${successCount} file(s) to LMP` + (errorCount > 0 ? `, ${errorCount} failed` : '');
+        vscode.window.showInformationMessage(message);
     }
 }

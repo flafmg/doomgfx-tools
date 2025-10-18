@@ -1,3 +1,5 @@
+import { approximateColors, ColorApproximationMode } from './colorApproximation';
+
 export interface LMPHeader {
     width: number;
     height: number;
@@ -10,6 +12,8 @@ export interface LMPImage {
     pixels: Uint8Array;
     transparency: Uint8Array;
 }
+
+export { ColorApproximationMode };
 export function parseLMP(buffer: Buffer): LMPImage {
     if (buffer.length < 8) {
         throw new Error('Invalid LMP file: too small');
@@ -92,42 +96,8 @@ export function lmpToRGBA(lmpImage: LMPImage, palette: Uint8Array): Uint8Array {
     return rgba;
 }
 
-export function rgbaToLMP(rgba: Uint8Array, width: number, height: number, palette: Uint8Array, offsetX: number = 0, offsetY: number = 0): Buffer {
-    const pixels = new Uint8Array(width * height);
-
-    for (let i = 0; i < width * height; i++) {
-        const r = rgba[i * 4];
-        const g = rgba[i * 4 + 1];
-        const b = rgba[i * 4 + 2];
-        const a = rgba[i * 4 + 3];
-
-        if (a < 128) {
-            pixels[i] = 247;
-            continue;
-        }
-
-        let bestIndex = 0;
-        let bestDistance = Infinity;
-
-        for (let p = 0; p < 256; p++) {
-            const pr = palette[p * 3];
-            const pg = palette[p * 3 + 1];
-            const pb = palette[p * 3 + 2];
-
-            const distance = Math.sqrt(
-                Math.pow(r - pr, 2) +
-                Math.pow(g - pg, 2) +
-                Math.pow(b - pb, 2)
-            );
-
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                bestIndex = p;
-            }
-        }
-
-        pixels[i] = bestIndex;
-    }
+export function rgbaToLMP(rgba: Uint8Array, width: number, height: number, palette: Uint8Array, offsetX: number = 0, offsetY: number = 0, mode: ColorApproximationMode = ColorApproximationMode.NearestColor): Buffer {
+    const pixels = approximateColors(rgba, width, height, palette, mode);
 
     const headerSize = 8;
     const offsetTableSize = width * 4;
@@ -137,68 +107,63 @@ export function rgbaToLMP(rgba: Uint8Array, width: number, height: number, palet
 
     for (let col = 0; col < width; col++) {
         const columnData: number[] = [];
-        let inPost = false;
-        let postStart = 0;
-        const postPixels: number[] = [];
-        let rowOffset = 0;
-        let first254 = true;
+        let topRow = -1;
 
-        for (let row = 0; row < height; row++) {
+        let row = 0;
+        while (row < height) {
             const pixelIndex = row * width + col;
             const paletteIndex = pixels[pixelIndex];
 
-            if (height < 256) {
-                if (rowOffset === 128) {
-                    if (inPost) {
-                        columnData.push(postStart, postPixels.length, 0);
-                        columnData.push(...postPixels);
-                        columnData.push(0);
-                        postPixels.length = 0;
-                        inPost = false;
-                    }
-                }
-            } else if (rowOffset === 254) {
-                if (inPost) {
-                    columnData.push(postStart, postPixels.length, 0);
-                    columnData.push(...postPixels);
-                    columnData.push(0);
-                    postPixels.length = 0;
-                    inPost = false;
-                }
-
-                first254 = false;
-
-                columnData.push(254, 0, 0, 0);
-
-                rowOffset = 0;
+            if (paletteIndex === 247) {
+                row++;
+                continue;
             }
 
-            if (paletteIndex !== 247) {
-                if (!inPost) {
-                    inPost = true;
-                    postStart = rowOffset;
+            const postPixels: number[] = [];
+            const postStartRow = row;
+
+            while (row < height && pixels[row * width + col] !== 247) {
+                const postLength = row - postStartRow;
+                
+                if (postLength >= 254) {
+                    break;
                 }
-                postPixels.push(paletteIndex);
+                
+                const splitPoint = height >= 256 ? 254 : 128;
+                if (postStartRow < splitPoint && row >= splitPoint) {
+                    break;
+                }
+
+                postPixels.push(pixels[row * width + col]);
+                row++;
+            }
+
+            let topdelta: number;
+            
+            if (topRow < 0) {
+                topdelta = postStartRow;
+            } else if (postStartRow <= topRow) {
+                topdelta = postStartRow - topRow;
             } else {
-                if (inPost) {
-                    columnData.push(postStart, postPixels.length, 0);
-                    columnData.push(...postPixels);
-                    columnData.push(0);
-                    postPixels.length = 0;
-                    inPost = false;
-                }
+                topdelta = postStartRow;
             }
 
-            rowOffset++;
-        }
-
-        if (inPost) {
-            columnData.push(postStart, postPixels.length, 0);
+            columnData.push(topdelta, postPixels.length, 0);
             columnData.push(...postPixels);
             columnData.push(0);
+
+            topRow = postStartRow;
+
+            const postEndRow = postStartRow + postPixels.length - 1;
+            
+            if (height >= 256 && postEndRow >= 254 && topRow < 254 && row < height) {
+                columnData.push(254, 0, 0, 0);
+                topRow = 254;
+            }
         }
 
         columnData.push(255);
+        
         const columnBuffer = Buffer.from(columnData);
         columns.push(columnBuffer);
         dataSize += columnBuffer.length;

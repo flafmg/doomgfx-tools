@@ -1,8 +1,14 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseLMP, lmpToRGBA, rgbaToLMP } from './lmpParser';
+import { parseLMP, lmpToRGBA, rgbaToLMP, ColorApproximationMode } from './lmpParser';
 import { getCurrentPalette } from './palette';
+
+function getColorMode(): ColorApproximationMode {
+    const config = vscode.workspace.getConfiguration('doomgfxTools');
+    const mode = config.get<string>('colorApproximationMode', 'nearest');
+    return mode as ColorApproximationMode;
+}
 
 interface DocumentState {
     dataUri: string;
@@ -173,13 +179,15 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
         const PNG = require('pngjs').PNG;
         const png = PNG.sync.read(pngBuffer);
         
+        const colorMode = getColorMode();
         const lmpBuffer = rgbaToLMP(
             new Uint8Array(png.data),
             currentData.width,
             currentData.height,
             getCurrentPalette(),
             currentData.offsetX,
-            currentData.offsetY
+            currentData.offsetY,
+            colorMode
         );
         
         await vscode.workspace.fs.writeFile(document.uri, lmpBuffer);
@@ -205,13 +213,15 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
         const PNG = require('pngjs').PNG;
         const png = PNG.sync.read(pngBuffer);
         
+        const colorMode = getColorMode();
         const lmpBuffer = rgbaToLMP(
             new Uint8Array(png.data),
             currentData.width,
             currentData.height,
             getCurrentPalette(),
             currentData.offsetX,
-            currentData.offsetY
+            currentData.offsetY,
+            colorMode
         );
         
         await vscode.workspace.fs.writeFile(destination, lmpBuffer);

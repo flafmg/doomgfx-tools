@@ -2,7 +2,7 @@
   "name": "doomgfx-tools",
   "displayName": "DoomGFX Tools",
   "description": "Tools for converting and editing DoomGFX images",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "publisher": "flaffy",
   "license": "MIT",
   "icon": "icon.png",
@@ -51,6 +51,10 @@
       {
         "command": "doomgfxTools.applyPalette",
         "title": "DoomGFX: Select Palette Page"
+      },
+      {
+        "command": "doomgfxTools.setColorMode",
+        "title": "DoomGFX: Set Color Approximation Mode"
       }
     ],
     "configuration": {
@@ -69,10 +73,32 @@
           "order": 2,
           "description": "Palette page index to use."
         },
+        "doomgfxTools.colorApproximationMode": {
+          "type": "string",
+          "default": "nearest",
+          "order": 3,
+          "enum": [
+            "nearest",
+            "bayer-2x2",
+            "bayer-4x4",
+            "bayer-8x8",
+            "floyd-steinberg",
+            "atkinson"
+          ],
+          "enumDescriptions": [
+            "Nearest Color - Fast, no dithering",
+            "Bayer 2x2 - ordered dithering",
+            "Bayer 4x4 - ordered dithering",
+            "Bayer 8x8 - ordered dithering",
+            "Floyd-Steinberg - Error diffusion dithering",
+            "Atkinson - Error diffusion dithering"
+          ],
+          "description": "Color approximation method when converting PNG to LMP format."
+        },
         "lmpreader.customPresets": {
           "type": "array",
           "default": [],
-          "order": 3,
+          "order": 4,
           "description": "Custom offset presets. Each preset has a name, offsetX, and offsetY.",
           "items": {
             "type": "object",
