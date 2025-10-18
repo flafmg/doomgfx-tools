@@ -1,7 +1,9 @@
 # DoomGFX Tools
 A VS Code extension for viewing and editing Doom-format LMP images with a SLADE-inspired interface.
 
-<placeholder, put images here>
+## In Action
+<img width="1598" height="899" alt="image" src="https://github.com/user-attachments/assets/15ef6be9-d5cf-46de-a863-0681db4d706a" />
+<img width="439" height="177" alt="image" src="https://github.com/user-attachments/assets/ad3edf97-4bff-4524-9241-2fe8e392631f" /> <img width="471" height="113" alt="image" src="https://github.com/user-attachments/assets/8d30bbc4-ee9b-445e-9eb5-64af5c422dee" />
 
 ## Features
 
@@ -32,7 +34,7 @@ A VS Code extension for viewing and editing Doom-format LMP images with a SLADE-
 ### Palette and convertion
 - Convert LMP to PNG and PNG to LMP
 - Support for custom game palettes (Doom, Heretic, Hexen, SRB2, etc.)
-
+- Support for the following color aproximation modes: nearest, bayer(2x2/4x4/8x8), floyd-steinberg and atkinson
 
 ## Usage
 
