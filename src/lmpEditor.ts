@@ -17,7 +17,7 @@ class LMPDocument implements vscode.CustomDocument {
     private _redoStack: Array<DocumentState> = [];
     private _currentState: DocumentState;
     private _savedState: DocumentState;
-    private readonly MAX_HISTORY = 50;
+    private readonly MAX_HISTORY = 100;
 
     constructor(
         public readonly uri: vscode.Uri,

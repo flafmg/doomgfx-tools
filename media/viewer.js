@@ -224,9 +224,12 @@
         offsetX: offsetX,
         offsetY: offsetY
       });
-    
+      
+      // Update UI dirty state without sending duplicate 'dirty' message
       if(!isDirty){
-        setDirty(true);
+        isDirty = true;
+        saveBtn.disabled = false;
+        revertBtn.disabled = false;
       }
     }
   }
@@ -392,8 +395,11 @@
           offsetY: offsetY
         });
         
+        // Update UI dirty state without sending duplicate 'dirty' message
         if(!isDirty){
-          setDirty(true);
+          isDirty = true;
+          saveBtn.disabled = false;
+          revertBtn.disabled = false;
         }
         
         //reset it bruh
@@ -418,8 +424,11 @@
           offsetY: offsetY
         });
     
+        // Update UI dirty state without sending duplicate 'dirty' message
         if(!isDirty){
-          setDirty(true);
+          isDirty = true;
+          saveBtn.disabled = false;
+          revertBtn.disabled = false;
         }
         
         presetSelect.value = '';
@@ -544,8 +553,11 @@
       canUndo = msg.canUndo;
       canRedo = msg.canRedo;
       
+      //fix infinite duplication of undo state, make it dirty but dont send the message
       if(msg.isDirty !== undefined){
-        setDirty(msg.isDirty);
+        isDirty = msg.isDirty;
+        saveBtn.disabled = !msg.isDirty;
+        revertBtn.disabled = !msg.isDirty;
       }
       
       image = new Image();
@@ -563,9 +575,11 @@
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
       vscode.postMessage({type: 'undo'});
     } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
       e.preventDefault();
+      e.stopPropagation();
       vscode.postMessage({type: 'redo'});
     }
   });
