@@ -25,6 +25,7 @@ class LMPDocument implements vscode.CustomDocument {
         offsetX: number,
         offsetY: number
     ) {
+        
         this._currentState = {
             ...originalData,
             offsetX,
@@ -297,6 +298,8 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
                         dataUri: document.savedState.dataUri,
                         width: document.savedState.width,
                         height: document.savedState.height,
+                        offsetX: document.savedState.offsetX,
+                        offsetY: document.savedState.offsetY,
                         fileName: fileName
                     });
                     this._onDidChangeCustomDocument.fire({
