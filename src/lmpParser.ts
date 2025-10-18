@@ -37,6 +37,7 @@ export function parseLMP(buffer: Buffer): LMPImage {
 
     for (let col = 0; col < header.width; col++) {
         let offset = columnOffsets[col];
+        let topRow = -1;
         
         while (offset < buffer.length) {
             const rowStart = buffer[offset];
@@ -44,12 +45,18 @@ export function parseLMP(buffer: Buffer): LMPImage {
                 break;
             }
             
+            let actualRow = rowStart;
+            if (rowStart <= topRow) {
+                actualRow = topRow + rowStart;
+            }
+            topRow = actualRow;
+            
             const pixelCount = buffer[offset + 1];
             offset += 2;
             offset += 1;
             
             for (let i = 0; i < pixelCount && offset < buffer.length; i++) {
-                const row = rowStart + i;
+                const row = actualRow + i;
                 if (row < header.height) {
                     const pixelIndex = row * header.width + col;
                     pixels[pixelIndex] = buffer[offset];
@@ -133,16 +140,43 @@ export function rgbaToLMP(rgba: Uint8Array, width: number, height: number, palet
         let inPost = false;
         let postStart = 0;
         const postPixels: number[] = [];
+        let rowOffset = 0;
+        let first254 = true;
 
         for (let row = 0; row < height; row++) {
             const pixelIndex = row * width + col;
             const paletteIndex = pixels[pixelIndex];
 
+            if (height < 256) {
+                if (rowOffset === 128) {
+                    if (inPost) {
+                        columnData.push(postStart, postPixels.length, 0);
+                        columnData.push(...postPixels);
+                        columnData.push(0);
+                        postPixels.length = 0;
+                        inPost = false;
+                    }
+                }
+            } else if (rowOffset === 254) {
+                if (inPost) {
+                    columnData.push(postStart, postPixels.length, 0);
+                    columnData.push(...postPixels);
+                    columnData.push(0);
+                    postPixels.length = 0;
+                    inPost = false;
+                }
+
+                first254 = false;
+
+                columnData.push(254, 0, 0, 0);
+
+                rowOffset = 0;
+            }
+
             if (paletteIndex !== 247) {
                 if (!inPost) {
                     inPost = true;
-                    postStart = row;
-                    postPixels.length = 0;
+                    postStart = rowOffset;
                 }
                 postPixels.push(paletteIndex);
             } else {
@@ -150,9 +184,12 @@ export function rgbaToLMP(rgba: Uint8Array, width: number, height: number, palet
                     columnData.push(postStart, postPixels.length, 0);
                     columnData.push(...postPixels);
                     columnData.push(0);
+                    postPixels.length = 0;
                     inPost = false;
                 }
             }
+
+            rowOffset++;
         }
 
         if (inPost) {
