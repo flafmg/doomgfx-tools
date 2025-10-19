@@ -92,7 +92,7 @@ Common palette sources:
 - Doom/Doom 2: PLAYPAL in DOOM.WAD or DOOM2.WAD
 - Heretic: PLAYPAL in HERETIC.WAD
 - Hexen: PLAYPAL in HEXEN.WAD
-- SRB2: PLAYPAL in SRB2.PK3 (contains 14 palettes)
+- SRB2: PLAYPAL in SRB2.PK3
 
 ### Custom Presets
 Custom offset presets are stored in VS Code settings (`lmpreader.customPresets`) and persist across sessions. You can manually edit them in your settings.json if needed:
