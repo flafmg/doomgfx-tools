@@ -122,6 +122,7 @@ class LMPDocument implements vscode.CustomDocument {
 
 export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocument> {
     private static readonly viewType = 'doomgfxTools.lmpEditor';
+    private static readonly VIEW_OFFSET_KEY = 'doomgfxTools.viewOffsetEnabled';
 
     private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<LMPDocument>>();
     public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
@@ -143,6 +144,14 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
     }
 
     constructor(private readonly context: vscode.ExtensionContext) {}
+
+    private getViewOffsetState(): boolean {
+        return this.context.globalState.get<boolean>(LMPEditorProvider.VIEW_OFFSET_KEY, false);
+    }
+
+    private setViewOffsetState(enabled: boolean): void {
+        this.context.globalState.update(LMPEditorProvider.VIEW_OFFSET_KEY, enabled);
+    }
 
     async openCustomDocument(
         uri: vscode.Uri,
@@ -270,6 +279,8 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
 
         const config = vscode.workspace.getConfiguration('lmpreader');
         const customPresets = config.get<Array<{name: string, offsetX: number, offsetY: number}>>('customPresets', []);
+        const viewOffsetEnabled = this.getViewOffsetState();
+        
         webviewPanel.webview.postMessage({
             type: 'init-image',
             dataUri: document.originalData.dataUri,
@@ -278,7 +289,8 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
             offsetX: document.currentEdit.offsetX,
             offsetY: document.currentEdit.offsetY,
             fileName: fileName,
-            customPresets: customPresets
+            customPresets: customPresets,
+            viewOffset: viewOffsetEnabled
         });
 
         webviewPanel.webview.onDidReceiveMessage(async message => {
@@ -368,6 +380,10 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
                         offsetX: message.offsetX,
                         offsetY: message.offsetY
                     });
+                    break;
+                    
+                case 'view-offset-changed':
+                    this.setViewOffsetState(message.viewOffset);
                     this._onDidChangeCustomDocument.fire({
                         document,
                         undo: () => {},

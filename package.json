@@ -2,7 +2,7 @@
   "name": "doomgfx-tools",
   "displayName": "DoomGFX Tools",
   "description": "Tools for converting and editing DoomGFX images",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publisher": "flaffy",
   "license": "MIT",
   "icon": "icon.png",

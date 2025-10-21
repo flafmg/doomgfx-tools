@@ -309,17 +309,39 @@
     zoomLevelEl.textContent = Math.round(zoom * 100) + '%';
     needsRender = true;
   }
-
+  //when offset enabled keep the view centered but zoom to fitthe image, so the center andthe image are both visible, doesit work?
   function zoomToFit(){
     const padding = 20;
     const availWidth = canvas.width - padding * 2;
     const availHeight = canvas.height - padding * 2;
-    const scaleX = availWidth / imgWidth;
-    const scaleY = availHeight / imgHeight;
-    const newZoom = Math.min(scaleX, scaleY);
-    panX = 0;
-    panY = 0;
-    setZoom(newZoom);
+    
+    if(viewOffset){
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      
+      const left = -offsetX;
+      const right = imgWidth - offsetX;
+      const top = -offsetY;
+      const bottom = imgHeight - offsetY;
+      
+      const boundsWidth = Math.max(Math.abs(left), Math.abs(right)) * 2;
+      const boundsHeight = Math.max(Math.abs(top), Math.abs(bottom)) * 2;
+      
+      const scaleX = availWidth / boundsWidth;
+      const scaleY = availHeight / boundsHeight;
+      const newZoom = Math.min(scaleX, scaleY);
+      
+      panX = 0;
+      panY = 0;
+      setZoom(newZoom);
+    } else {
+      const scaleX = availWidth / imgWidth;
+      const scaleY = availHeight / imgHeight;
+      const newZoom = Math.min(scaleX, scaleY);
+      panX = 0;
+      panY = 0;
+      setZoom(newZoom);
+    }
   }
 
   canvas.addEventListener('wheel', (e) => {
@@ -461,7 +483,17 @@
   viewOffsetCheckbox.addEventListener('change', (e) => {
     viewOffset = e.target.checked;
     canvas.style.cursor = viewOffset ? 'crosshair' : 'grab';
+    
+    if(viewOffset && image){
+      zoomToFit();
+    }
+    
     needsRender = true;
+    
+    vscode.postMessage({
+      type: 'view-offset-changed',
+      viewOffset: viewOffset
+    });
   });
 
   offsetXInput.addEventListener('change', (e) => {
@@ -525,6 +557,12 @@
       imgHeight = msg.height;
       offsetX = msg.offsetX || 0;
       offsetY = msg.offsetY || 0;
+      
+      if(msg.viewOffset !== undefined){
+        viewOffset = msg.viewOffset;
+        viewOffsetCheckbox.checked = msg.viewOffset;
+        canvas.style.cursor = viewOffset ? 'crosshair' : 'grab';
+      }
       
       if(msg.fileName && fileNameEl){
         fileNameEl.textContent = msg.fileName;
