@@ -123,6 +123,7 @@ class LMPDocument implements vscode.CustomDocument {
 export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocument> {
     private static readonly viewType = 'doomgfxTools.lmpEditor';
     private static readonly VIEW_OFFSET_KEY = 'doomgfxTools.viewOffsetEnabled';
+    private static readonly VIEW_STATE_KEY = 'doomgfxTools.viewState'; //this right now?
 
     private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<LMPDocument>>();
     public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
@@ -146,11 +147,33 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
     constructor(private readonly context: vscode.ExtensionContext) {}
 
     private getViewOffsetState(): boolean {
+        const config = vscode.workspace.getConfiguration('doomgfxTools');
+        const persistOffsetToggle = config.get<boolean>('persistOffsetToggle', true);
+        
+        if (!persistOffsetToggle) {
+            return false;
+        }
+        
         return this.context.globalState.get<boolean>(LMPEditorProvider.VIEW_OFFSET_KEY, false);
     }
 
     private setViewOffsetState(enabled: boolean): void {
         this.context.globalState.update(LMPEditorProvider.VIEW_OFFSET_KEY, enabled);
+    }
+
+    private getViewState(): {zoom: number, panX: number, panY: number} | undefined {
+        const config = vscode.workspace.getConfiguration('doomgfxTools');
+        const persistViewState = config.get<boolean>('persistViewState', false);
+        
+        if (!persistViewState) {
+            return undefined;
+        }
+        
+        return this.context.globalState.get<{zoom: number, panX: number, panY: number}>(LMPEditorProvider.VIEW_STATE_KEY);
+    }
+
+    private setViewState(zoom: number, panX: number, panY: number): void {
+        this.context.globalState.update(LMPEditorProvider.VIEW_STATE_KEY, {zoom, panX, panY});
     }
 
     async openCustomDocument(
@@ -280,6 +303,7 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
         const config = vscode.workspace.getConfiguration('lmpreader');
         const customPresets = config.get<Array<{name: string, offsetX: number, offsetY: number}>>('customPresets', []);
         const viewOffsetEnabled = this.getViewOffsetState();
+        const viewState = this.getViewState();
         
         webviewPanel.webview.postMessage({
             type: 'init-image',
@@ -290,7 +314,8 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
             offsetY: document.currentEdit.offsetY,
             fileName: fileName,
             customPresets: customPresets,
-            viewOffset: viewOffsetEnabled
+            viewOffset: viewOffsetEnabled,
+            viewState: viewState
         });
 
         webviewPanel.webview.onDidReceiveMessage(async message => {
@@ -389,6 +414,10 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
                         undo: () => {},
                         redo: () => {}
                     });
+                    break;
+                    
+                case 'view-state-changed':
+                    this.setViewState(message.zoom, message.panX, message.panY);
                     break;
                     
                 case 'save-custom-presets':

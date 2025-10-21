@@ -117,6 +117,18 @@
               }
             }
           }
+        },
+        "doomgfxTools.persistViewState": {
+          "type": "boolean",
+          "default": true,
+          "order": 5,
+          "description": "Remember zoom level and pan position when opening new files."
+        },
+        "doomgfxTools.persistOffsetToggle": {
+          "type": "boolean",
+          "default": true,
+          "order": 6,
+          "description": "Remember 'View Offset' toggle state when opening new files."
         }
       }
     },

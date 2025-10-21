@@ -308,6 +308,16 @@
 
     zoomLevelEl.textContent = Math.round(zoom * 100) + '%';
     needsRender = true;
+    saveViewState();
+  }
+
+  function saveViewState(){
+    vscode.postMessage({
+      type: 'view-state-changed',
+      zoom: zoom,
+      panX: panX,
+      panY: panY
+    });
   }
   //when offset enabled keep the view centered but zoom to fitthe image, so the center andthe image are both visible, doesit work?
   function zoomToFit(){
@@ -393,6 +403,7 @@
       lastMouseX = e.clientX;
       lastMouseY = e.clientY;
       needsRender = true;
+      saveViewState();
     } else if(isDraggingOffset){
       const dx = e.clientX - dragStartX;
       const dy = e.clientY - dragStartY;
@@ -576,10 +587,20 @@
       image = new Image();
       image.onload = () => {
         resizeCanvas();
-        zoomToFit();
+        
+        if(msg.viewState){
+          zoom = msg.viewState.zoom;
+          panX = msg.viewState.panX;
+          panY = msg.viewState.panY;
+          zoomLevelEl.textContent = Math.round(zoom * 100) + '%';
+        } else {
+          zoomToFit();
+        }
+        
         updateImageSize();
         updateOffsetInputs();
         setDirty(false);
+        needsRender = true;
       };
       image.src = imgData;
     } else if(msg.type === 'update-image'){
