@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseLMP, lmpToRGBA, rgbaToLMP, ColorApproximationMode } from './lmpParser';
-import { getCurrentPalette } from './palette';
+import { parseLMP, lmpToRGBA, rgbaToLMP, ColorApproximationMode } from '../parser/lmpParser';
+import { getCurrentPalette } from '../parser/palette';
 
 function getColorMode(): ColorApproximationMode {
     const config = vscode.workspace.getConfiguration('doomgfxTools');
@@ -286,7 +286,7 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
     ): Promise<void> {
         webviewPanel.webview.options = {
             enableScripts: true,
-            localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'media')]
+            localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'src/editor/view')]
         };
 
         this.webviewPanels.set(document.uri.toString(), webviewPanel);
@@ -429,10 +429,10 @@ export class LMPEditorProvider implements vscode.CustomEditorProvider<LMPDocumen
     }
 
     private async getHtmlForWebview(webview: vscode.Webview, document: LMPDocument): Promise<string> {
-        const mediaPath = path.join(this.context.extensionPath, 'media', 'viewer.html');
+        const mediaPath = path.join(this.context.extensionPath, 'src/editor/view', 'viewer.html');
         let html = fs.readFileSync(mediaPath, 'utf8');
 
-        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'viewer.js'));
+        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'src/editor/view', 'viewer.js'));
         html = html.replace(/<script\s+src=\"viewer.js\"\s*>\s*<\/script>/i, `<script src=\"${scriptUri}\"></script>`);
 
         return html;

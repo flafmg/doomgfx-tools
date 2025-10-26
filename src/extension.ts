@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LMPEditorProvider } from './lmpEditor';
+import { LMPEditorProvider } from './editor/lmpEditor';
 import { registerCommands } from './commands';
 
 export function activate(context: vscode.ExtensionContext) {

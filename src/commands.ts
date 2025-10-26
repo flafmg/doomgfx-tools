@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { parseLMP, lmpToRGBA, rgbaToLMP, ColorApproximationMode } from './lmpParser';
-import { getCurrentPalette, loadPaletteFromFile, setCustomPalette } from './palette';
+import { parseLMP, lmpToRGBA, rgbaToLMP, ColorApproximationMode } from './parser/lmpParser';
+import { getCurrentPalette, loadPaletteFromFile, setCustomPalette } from './parser/palette';
 
 export function registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
