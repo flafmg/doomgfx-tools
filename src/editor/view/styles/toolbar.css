@@ -1,0 +1,79 @@
+.toolbar {
+    background: var(--vscode-editorWidget-background);
+    border-bottom: 1px solid var(--vscode-editorWidget-border);
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.toolbar-left,
+.toolbar-center,
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolbar-center {
+    flex: 1;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 16px;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background: var(--vscode-editorWidget-border);
+    margin: 0 8px;
+}
+
+.toolbar-button {
+    background: transparent;
+    border: none;
+    color: var(--vscode-button-secondaryForeground);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: var(--vscode-font-family);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    min-width: 28px;
+    justify-content: center;
+}
+
+.toolbar-button:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+}
+
+.toolbar-button:active {
+    background: var(--vscode-button-background);
+}
+
+.toolbar-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.toolbar-button svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
